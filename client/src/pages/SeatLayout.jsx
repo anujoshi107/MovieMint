@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { dummyDateTimeData, dummyDashboardData, dummyShowsData } from '../assets/assets'
 import BlurCircle from './BlurCircle'
-import { ChevronRightIcon } from 'lucide-react'
+import { Clock } from 'lucide-react'
 
 function SeatLayout() {
   const { id, date } = useParams()
@@ -32,6 +32,13 @@ function SeatLayout() {
     if (!show?.datetime || !date) return []
     return show.datetime[date] || []
   }, [show, date])
+
+  // Auto-select the first timing slot when timings load (UX improvement matching screenshots)
+  useEffect(() => {
+    if (timings.length > 0 && !selectedSlot) {
+      setSelectedSlot(timings[0])
+    }
+  }, [timings, selectedSlot])
 
   const activeShow = useMemo(() => {
     if (!show?.movie) return null
@@ -69,179 +76,172 @@ function SeatLayout() {
   }
 
   const renderSeatRow = (row, count = 9) => (
-    <div key={row} className="flex gap-2 mt-2 items-center">
-      <span className="w-4 text-sm font-bold text-gray-200 shrink-0">{row}</span>
-      <div className="flex flex-wrap items-center gap-2">
-        {Array.from({ length: count }, (_, i) => {
-          const seatId = `${row}${i + 1}`
-          const isOccupied = !!occupiedSeats[seatId]
-          const isSelected = selectedSeats.includes(seatId)
-          return (
-            <button
-              key={seatId}
-              type="button"
-              onClick={() => handleSeatClick(seatId)}
-              disabled={isOccupied}
-              className={`h-8 w-8 rounded border text-[10px] font-medium ${
-                isOccupied
-                  ? 'border-red-500/70 bg-red-500/20 text-red-100 cursor-not-allowed'
-                  : `cursor-pointer ${
-                      isSelected
-                        ? 'bg-primary text-white border-primary'
-                        : 'border-primary/60 text-gray-200 hover:border-primary'
-                    }`
-              }`}
-            >
-              {seatId}
-            </button>
-          )
-        })}
-      </div>
+    <div key={row} className="flex items-center gap-2.5">
+      {Array.from({ length: count }, (_, i) => {
+        const seatId = `${row}${i + 1}`
+        const isOccupied = !!occupiedSeats[seatId]
+        const isSelected = selectedSeats.includes(seatId)
+        return (
+          <button
+            key={seatId}
+            type="button"
+            onClick={() => handleSeatClick(seatId)}
+            disabled={isOccupied}
+            className={`w-9 h-9 flex items-center justify-center rounded-md border text-[11px] font-semibold transition-all duration-300 cursor-pointer ${
+              isOccupied
+                ? 'border-white/5 bg-white/5 text-white/10 cursor-not-allowed'
+                : isSelected
+                  ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(248,69,101,0.4)] scale-105'
+                  : 'border-primary/40 text-gray-300 bg-transparent hover:border-primary hover:text-white'
+            }`}
+          >
+            {seatId}
+          </button>
+        )
+      })}
     </div>
   )
 
   /** Front: A–B full width centered. Middle/back: left block + aisle + right block. */
   const renderSplitBlock = (leftRows, rightRows) => (
-    <div className="mt-6 flex justify-center items-start gap-10 md:gap-16 lg:gap-24">
-      <div className="flex flex-col">{leftRows.map((r) => renderSeatRow(r))}</div>
-      <div
-        className="hidden sm:block w-px shrink-0 self-stretch min-h-18 bg-primary/25 rounded-full"
-        aria-hidden
-      />
-      <div className="flex flex-col">{rightRows.map((r) => renderSeatRow(r))}</div>
+    <div className="mt-4 flex justify-center items-start gap-8 md:gap-12 lg:gap-16 w-full">
+      <div className="flex flex-col gap-2.5">{leftRows.map((r) => renderSeatRow(r))}</div>
+      <div className="flex flex-col gap-2.5">{rightRows.map((r) => renderSeatRow(r))}</div>
     </div>
   )
 
   const totalAmount = selectedSeats.length * showPrice
 
-  const onBookNow = () => {
-    if (!selectedSlot) return toast('Please select a timing')
-    if (selectedSeats.length === 0) return toast('Please select at least 1 seat')
+  const onBookNow = async () => {
+    if (!selectedSlot) return toast.error('Please select a timing')
+    if (selectedSeats.length === 0) return toast.error('Please select at least 1 seat')
 
-    toast(`Seats booked: ${selectedSeats.join(', ')} (Total: ${totalAmount})`)
-    // TODO: navigate to checkout/payment and persist booking
+    const loadingToast = toast.loading('Redirecting to Stripe Checkout...')
+
+    try {
+      const response = await fetch('http://localhost:5000/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          movieTitle: show.movie.title,
+          selectedSeats: selectedSeats,
+          showPrice: showPrice,
+          totalAmount: totalAmount,
+          date: date,
+          time: selectedSlot.time,
+          movieId: id,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to initiate payment')
+      }
+
+      toast.dismiss(loadingToast)
+      toast.success('Ready for Checkout!')
+      
+      // Redirect directly to Stripe Hosted Checkout
+      window.location.href = data.url
+    } catch (err) {
+      toast.dismiss(loadingToast)
+      console.error(err)
+      toast.error(err.message || 'Server connection error. Make sure your local backend is running.')
+    }
   }
 
   if (!show || !show.movie) {
     return (
-      <div className="mt-20 px-10">
-        <p>Loading...</p>
+      <div className="pt-32 px-6 md:px-16 lg:px-24 xl:px-44 text-center">
+        <p className="text-gray-400">Loading...</p>
       </div>
     )
   }
 
   return (
-    <div className="mt-20 px-10 pb-10">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-col items-start gap-2">
-          <h1 className="text-2xl font-bold">{show.movie.title}</h1>
-          <p className="text-sm text-gray-400">Select a timing and seats</p>
+    <div className="px-6 md:px-16 lg:px-24 xl:px-44 pt-32 pb-20 min-h-screen overflow-hidden">
+      <BlurCircle top='-80px' left='-80px'/>
+      <BlurCircle bottom='-80px' right='-80px'/>
+
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 md:gap-12 items-start justify-center">
+        
+        {/* Left timings card */}
+        <div className="w-full md:w-[260px] min-w-[260px] bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl">
+          <p className="text-lg font-semibold text-white mb-4">Available Timings</p>
+          {timings.length === 0 ? (
+            <p className="text-sm text-gray-400">No timings available.</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {timings.map((slot) => {
+                const selected = selectedSlot?.time === slot.time
+                return (
+                  <button
+                    key={slot.time}
+                    onClick={() => {
+                      setSelectedSlot(slot)
+                      setSelectedSeats([]) // reset selected seats for new slot
+                    }}
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl border text-left transition-all duration-300 cursor-pointer ${
+                      selected
+                        ? 'bg-primary/20 text-white border-primary shadow-[0_0_15px_rgba(248,69,101,0.2)] ring-1 ring-primary'
+                        : 'bg-transparent text-gray-300 border-white/10 hover:bg-white/5 hover:border-white/20'
+                    }`}
+                  >
+                    <Clock className={`w-4 h-4 ${selected ? 'text-primary' : 'text-gray-400'}`} />
+                    <span className="text-sm font-semibold tracking-wide">{formatTime(slot.time)}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="flex items-start justify-center gap-8">
-          {/* Left timings card */}
-          <div className="w-[280px] bg-primary/10 border border-primary/20 rounded-lg p-5">
-            <p className="text-lg font-semibold mb-3">Available Timings</p>
-            {timings.length === 0 ? (
-              <p className="text-sm text-gray-400">No timings available for this date.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {timings.map((slot) => {
-                  const selected = selectedSlot?.time === slot.time
-                  return (
-                    <button
-                      key={slot.time}
-                      onClick={() => {
-                        setSelectedSlot(slot)
-                        setSelectedSeats([]) // reset selected seats for new slot
-                      }}
-                      className={`px-3 py-2 rounded border text-left transition cursor-pointer ${
-                        selected
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-white/0 text-gray-200 border-primary/30 hover:bg-primary/10'
-                      }`}
-                    >
-                      <p className="text-sm font-medium">{formatTime(slot.time)}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+        {/* Seat map area */}
+        <div className="flex-1 w-full flex flex-col items-center">
+          
+          <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Select your seat</h2>
+
+          {/* Screen curve */}
+          <div className="w-full flex flex-col items-center mt-6 mb-12">
+            <div className="w-full max-w-[400px] h-4 border-t-[3px] border-primary/60 rounded-[50%_50%_0_0] opacity-80 shadow-[0_-2px_10px_rgba(248,69,101,0.3)]"></div>
+            <div className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase -mt-1">SCREEN SIDE</div>
           </div>
 
-          {/* Seat map area */}
-          <div className="flex-1 bg-black/20 border border-black rounded-lg p-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-              <BlurCircle top='0px' left='-50px'/>
-              <BlurCircle  bottom='0px' right='0px'/>
-               
-                <p className="text-lg font-semibold text-white/90">Select your seat</p>
-                <p className="text-sm text-gray-300 mt-1">
-                  Legend:{' '}
-                  <span className="text-green-400 font-semibold">Available</span> •{' '}
-                  <span className="text-red-400 font-semibold">Occupied</span> •{' '}
-                  <span className="text-primary font-semibold">Selected</span>
-                </p>
+          {!selectedSlot ? (
+            <p className="text-sm text-gray-300 text-center mt-6">
+              Select a timing on the left to see occupied seats.
+            </p>
+          ) : (
+            <div className="flex flex-col items-center w-full">
+              {/* Front block: A & B centered under screen */}
+              <div className="flex flex-col items-center gap-2.5 w-full">
+                {['A', 'B'].map((row) => renderSeatRow(row))}
               </div>
 
-              <div className="min-w-[220px]">
-                <p className="text-sm text-gray-300">Show Price</p>
-                <p className="text-xl font-bold text-white">{showPrice || '-'}</p>
-                <p className="text-sm text-gray-300 mt-2">Total</p>
-                <p className="text-xl font-bold text-white">{totalAmount || 0}</p>
-              </div>
+              {/* Middle block: C,D | aisle | E,F */}
+              {renderSplitBlock(['C', 'D'], ['E', 'F'])}
+
+              {/* Back block: G,H | aisle | I,J */}
+              {renderSplitBlock(['G', 'H'], ['I', 'J'])}
             </div>
+          )}
 
-            {/* Screen */}
-            <div className="mt-6">
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-semibold text-gray-200 tracking-wide mb-2">SCREEN SIDE</div>
-                  <div className="w-full h-3 bg-primary/50 rounded-full" />
-              </div>
-            </div>
-
-            {!selectedSlot ? (
-              <p className="text-sm text-gray-300 mt-6">
-                Select a timing on the left to see occupied seats.
-              </p>
-            ) : (
-              <div className="mt-4 flex flex-col items-center w-full">
-                {/* Front block: A & B centered under screen */}
-                <div className="flex flex-col items-center w-full">
-                  {['A', 'B'].map((row) => (
-                    <div key={row} className="flex justify-center w-full">
-                      {renderSeatRow(row)}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Middle block: C,D | aisle | E,F */}
-                {renderSplitBlock(['C', 'D'], ['E', 'F'])}
-
-                {/* Back block: G,H | aisle | I,J */}
-                {renderSplitBlock(['G', 'H'], ['I', 'J'])}
-              </div>
-            )}
-
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <p className="text-sm text-gray-200 text-center">
-                Selected:{' '}
-                <span className="font-semibold">
-                  {selectedSeats.length ? selectedSeats.join(', ') : '-'}
-                </span>
-              </p>
-
+          {/* Centered Proceed to Checkout Button */}
+          {selectedSeats.length > 0 && (
+            <div className="mt-12 flex justify-center w-full">
               <button
                 type="button"
                 onClick={onBookNow}
-                className="bg-primary text-white px-10 py-3 rounded-full hover:bg-primary/90 transition cursor-pointer inline-flex items-center gap-2 font-medium"
+                className="px-10 py-3.5 bg-primary hover:bg-primary-dull text-white text-sm font-semibold rounded-full shadow-[0_4px_20px_rgba(248,69,101,0.3)] hover:shadow-[0_6px_25px_rgba(248,69,101,0.4)] transition-all duration-300 cursor-pointer flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 Proceed to Checkout
-                <ChevronRightIcon className="w-5 h-5" aria-hidden />
+                <span className="text-base font-bold">→</span>
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ import MovieDetails from './pages/MovieDetails';
 import SeatLayout from './pages/SeatLayout';
 import MyBookings from './pages/MyBookings';
 import Favorite from './pages/Favorite';
+import Success from './pages/Success';
+import Releases from './pages/Releases';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
@@ -27,6 +29,8 @@ function App() {
         <Route path="/movies/:id/:date" element={<SeatLayout />} />
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/favorite" element={<Favorite />} />
+        <Route path="/success" element={<Success />} />
+        <Route path="/releases" element={<Releases />} />
       </Routes>
       
       {!isAdminRoute && <Footer />}

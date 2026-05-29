@@ -9,7 +9,7 @@ function footer() {
                 <div className="md:max-w-120">
                     <img alt="" class="h-11" src={assets.logo} />
                     <p className="mt-6 text-sm">
-                      QuickShow is your ultimate destination for booking movie tickets effortlessly. Discover the latest releases, check showtimes, select your favorite seats, and enjoy a seamless movie experience. We are committed to bringing the magic of cinema closer to you, anytime and anywhere
+                      MovieMint is your ultimate destination for booking movie tickets effortlessly. Discover the latest releases, check showtimes, select your favorite seats, and enjoy a seamless movie experience. We are committed to bringing the magic of cinema closer to you, anytime and anywhere
                     </p>
                     <div className="flex items-center gap-2 mt-4">
                         <img src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/refs/heads/main/assets/appDownload/googlePlayBtnBlack.svg" alt="google play" className="h-10 w-auto border border-white rounded" />
