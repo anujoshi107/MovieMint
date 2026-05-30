@@ -4,11 +4,13 @@ import { useUser } from '@clerk/clerk-react'
 import { Check, Calendar, Clock, MapPin, Sparkles, Home, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
 import BlurCircle from './BlurCircle'
+import { useAppContext } from '../context/AppContext'
 
 function Success() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useUser()
+  const { addBooking } = useAppContext()
 
   const movieTitle = searchParams.get('movie') || 'Unknown Movie'
   const seatsStr = searchParams.get('seats') || ''
@@ -21,7 +23,22 @@ function Success() {
   useEffect(() => {
     // Show a success toast on mount
     toast.success('Payment completed successfully! Enjoy your show!')
-  }, [])
+
+    // Add booking to global state/localStorage
+    const sessionId = searchParams.get('session_id')
+    if (sessionId) {
+      addBooking({
+        sessionId,
+        movieTitle,
+        seats,
+        totalAmount,
+        price,
+        date,
+        time,
+        bookedAt: new Date().toISOString()
+      })
+    }
+  }, [searchParams, addBooking])
 
   const formattedTime = (isoString) => {
     try {

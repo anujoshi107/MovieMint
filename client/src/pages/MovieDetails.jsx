@@ -7,15 +7,18 @@ import timeFormat from '../lib/timeFormat';
 import DateSelect from '../components/DateSelect';
 import MovieCard from './MoviesCard';
 import Loading from '../components/Loading';
+import { useAppContext } from '../context/AppContext';
+import toast from 'react-hot-toast';
 
 function MovieDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [show, setshow] = useState(null);
+  const { favoriteMovies, toggleFavorite } = useAppContext();
 
   const getshow = async () => {
     const movie = dummyShowsData.find(m => m._id == id);
-    setshow({ 
+    setshow({
       movie: movie,
       datetime: dummyDateTimeData
     });
@@ -32,6 +35,33 @@ function MovieDetails() {
       </div>
     );
   }
+
+  const isFavorited = favoriteMovies.some((m) => m._id === show.movie._id);
+
+  const handleFavoriteClick = () => {
+    toggleFavorite(show.movie);
+    if (isFavorited) {
+      toast.error(`Removed "${show.movie.title}" from favorites`, {
+        icon: '💔',
+        style: {
+          borderRadius: '12px',
+          background: '#1F2937',
+          color: '#fff',
+          border: '1px solid rgba(248, 69, 101, 0.2)'
+        }
+      });
+    } else {
+      toast.success(`Added "${show.movie.title}" to favorites!`, {
+        icon: '💖',
+        style: {
+          borderRadius: '12px',
+          background: '#1F2937',
+          color: '#fff',
+          border: '1px solid rgba(248, 69, 101, 0.2)'
+        }
+      });
+    }
+  };
 
   // Filter similar movies dynamically (excluding current movie)
   const similarMovies = dummyShowsData.filter(m => m._id != id).slice(0, 4);
@@ -90,8 +120,15 @@ function MovieDetails() {
               Buy Tickets
             </a>
 
-            <button className='p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full transition duration-300 text-white flex items-center justify-center cursor-pointer aspect-square'>
-              <Heart className='w-5 h-5' />
+            <button 
+              onClick={handleFavoriteClick}
+              className={`p-3 border rounded-full transition duration-300 flex items-center justify-center cursor-pointer aspect-square ${
+                isFavorited 
+                  ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(248,69,101,0.3)]' 
+                  : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-primary text-primary' : ''}`} />
             </button>
           </div>
         </div>
@@ -104,9 +141,9 @@ function MovieDetails() {
           {show.movie.casts.slice(0, 12).map((cast, index) => (
             <div key={index} className='flex flex-col items-center text-center w-20 md:w-24 group cursor-pointer'>
               <div className='relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border border-white/10 shadow-md group-hover:scale-105 transition-transform duration-300'>
-                <img 
-                  src={cast.profile_path} 
-                  alt={cast.name} 
+                <img
+                  src={cast.profile_path}
+                  alt={cast.name}
                   className='w-full h-full object-cover'
                 />
               </div>
@@ -130,8 +167,8 @@ function MovieDetails() {
       </div>
 
       <div className='flex justify-center mt-20'>
-        <button 
-          onClick={() => { navigate('/movies'); scrollTo(0, 0) }} 
+        <button
+          onClick={() => { navigate('/movies'); scrollTo(0, 0) }}
           className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer'
         >
           Show more

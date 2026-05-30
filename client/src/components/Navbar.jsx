@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { MenuIcon, SearchIcon, TicketPlus, XIcon } from 'lucide-react'
 import { useClerk, UserButton, useUser } from '@clerk/clerk-react'
-// import { useAppContext } from '../context/AppContext'
+import { useAppContext } from '../context/AppContext'
 
 const Navbar = () => {
 
@@ -13,7 +13,7 @@ const Navbar = () => {
 
   const navigate = useNavigate()
 
-  //  const {favoriteMovies} = useAppContext()
+  const { favoriteMovies } = useAppContext()
 
   return (
     <div className='fixed top-0 left-0 z-50 w-full flex items-center justify-between px-6 md:px-16 lg:px-36 py-5'>
@@ -29,8 +29,14 @@ const Navbar = () => {
         <Link onClick={() => { scrollTo(0, 0); setIsOpen(false) }} to='/movies'>Movies</Link>
         <Link onClick={() => { scrollTo(0, 0); setIsOpen(false) }} to='/'>Theaters</Link>
         <Link onClick={() => { scrollTo(0, 0); setIsOpen(false) }} to='/releases'>Release</Link>
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false) }} to='/favorite'>Favorites</Link>
-        {/* {favoriteMovies.length > 0 && <Link onClick={()=> {scrollTo(0,0); setIsOpen(false)}} to='/favorite'>Favorites</Link>} */}
+        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false) }} to='/favorite' className='flex items-center gap-1.5'>
+          Favorites
+          {favoriteMovies.length > 0 && (
+            <span className='flex items-center justify-center text-[10px] font-bold bg-primary text-white rounded-full w-4.5 h-4.5 min-w-4.5 min-h-4.5 animate-pulse'>
+              {favoriteMovies.length}
+            </span>
+          )}
+        </Link>
       </div>
 
       <div className='flex items-center gap-8'>
