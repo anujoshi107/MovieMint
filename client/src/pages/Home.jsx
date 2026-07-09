@@ -1,15 +1,17 @@
 import React from 'react'
-import HeroSection from '../components/HeroSection.jsx'
-import FeaturedSection from './FeaturedSection.jsx'
-import TrailersSection from './TrailersSection.jsx'
-function Home() {
+import HeroSection from '../components/HeroSection'
+import FeaturedSection from '../components/FeaturedSection'
+import TrailersSection from '../components/TrailersSection'
+
+const Home = () => {
   return (
-    <div>
-      <HeroSection/>
-      <FeaturedSection/>
-      <TrailersSection/>
-    </div>
+    <>
+      <HeroSection />
+      <FeaturedSection />
+      <TrailersSection />
+    </>
   )
 }
 
 export default Home
+

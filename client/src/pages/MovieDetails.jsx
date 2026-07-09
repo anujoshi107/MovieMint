@@ -1,181 +1,113 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom';
-import { dummyDateTimeData, dummyShowsData } from '../assets/assets';
-import { PlayCircleIcon, StarIcon, Heart } from 'lucide-react';
-import BlurCircle from './BlurCircle';
-import timeFormat from '../lib/timeFormat';
-import DateSelect from '../components/DateSelect';
-import MovieCard from './MoviesCard';
-import Loading from '../components/Loading';
-import { useAppContext } from '../context/AppContext';
-import toast from 'react-hot-toast';
+import { useNavigate, useParams } from 'react-router-dom'
 
-function MovieDetails() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [show, setshow] = useState(null);
-  const { favoriteMovies, toggleFavorite } = useAppContext();
+import BlurCircle from '../components/BlurCircle'
+import { Heart, PlayCircleIcon, StarIcon } from 'lucide-react'
+import timeFormat from '../lib/timeFormat'
+import DateSelect from '../components/DateSelect'
+import MovieCard from '../components/MoviesCard'
+import Loading from '../components/Loading'
+import { useAppContext } from '../context/AppContext'
+import toast from 'react-hot-toast'
 
-  const getshow = async () => {
-    const movie = dummyShowsData.find(m => m._id == id);
-    setshow({
-      movie: movie,
-      datetime: dummyDateTimeData
-    });
+const MovieDetails = () => {
+
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const [show, setShow] = useState(null)
+
+  const { shows, axios, getToken, user, fetchFavoriteMovies, favoriteMovies, image_base_url } = useAppContext()
+
+  const getShow = async () => {
+    try {
+      const { data } = await axios.get(`/api/show/${id}`)
+      if (data.success) {
+        setShow(data)
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const handleFavorite = async () => {
+    try {
+      if (!user) return toast.error("Please login to proceed");
+
+      const { data } = await axios.post('/api/user/update-favorite', { movieId: id }, { headers: { Authorization: `Bearer ${await getToken()}` } })
+
+      if (data.success) {
+        await fetchFavoriteMovies()
+        toast.success(data.message)
+      }
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   useEffect(() => {
-    getshow();
+    getShow()
   }, [id])
 
-  if (!show || !show.movie) {
-    return (
-      <div className="pt-32 px-6 md:px-16 lg:px-24 xl:px-44 text-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  const isFavorited = favoriteMovies.some((m) => m._id === show.movie._id);
-
-  const handleFavoriteClick = () => {
-    toggleFavorite(show.movie);
-    if (isFavorited) {
-      toast.error(`Removed "${show.movie.title}" from favorites`, {
-        icon: '💔',
-        style: {
-          borderRadius: '12px',
-          background: '#1F2937',
-          color: '#fff',
-          border: '1px solid rgba(248, 69, 101, 0.2)'
-        }
-      });
-    } else {
-      toast.success(`Added "${show.movie.title}" to favorites!`, {
-        icon: '💖',
-        style: {
-          borderRadius: '12px',
-          background: '#1F2937',
-          color: '#fff',
-          border: '1px solid rgba(248, 69, 101, 0.2)'
-        }
-      });
-    }
-  };
-
-  // Filter similar movies dynamically (excluding current movie)
-  const similarMovies = dummyShowsData.filter(m => m._id != id).slice(0, 4);
-
   return show ? (
-    <div className='px-6 md:px-16 lg:px-24 xl:px-44 pt-32 pb-20 overflow-hidden'>
+    <div className='px-6 md:px-16 lg:px-40 pt-30 md:pt-50'>
+      <div className='flex flex-col md:flex-row gap-8 max-w-6xl mx-auto'>
 
-      {/* Main Container */}
-      <div className='flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start'>
+        <img src={image_base_url + show.movie.poster_path} alt="" className='max-md:mx-auto rounded-xl h-104 max-w-70 object-cover' />
 
-        {/* Poster */}
-        <img
-          src={show.movie.poster_path}
-          alt={show.movie.title}
-          className='w-[270px] min-w-[270px] h-[400px] object-cover rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.6)] border border-white/10'
-        />
-
-        {/* Details */}
-        <div className='flex flex-col gap-4 relative flex-1 w-full'>
-
-          <BlurCircle top="-20px" left="40px" />
-          <BlurCircle bottom="-40px" right="-40px" />
-
-          <p className='text-xs font-semibold text-primary tracking-widest uppercase'>
-            {show.movie.original_language === 'en' ? 'ENGLISH' : show.movie.original_language?.toUpperCase() || 'ENGLISH'}
-          </p>
-
-          <h1 className='text-4xl md:text-5xl font-bold tracking-tight text-white mt-1'>
-            {show.movie.title}
-          </h1>
-
-          <div className='flex items-center gap-2 mt-1'>
-            <StarIcon className='w-5 h-5 text-primary fill-primary' />
-            <span className='text-sm md:text-base font-semibold text-gray-200'>
-              {show.movie.vote_average?.toFixed(1) || '7.5'} User Rating
-            </span>
+        <div className='relative flex flex-col gap-3'>
+          <BlurCircle top="-100px" left="-100px" />
+          <p className='text-primary'>ENGLISH</p>
+          <h1 className='text-4xl font-semibold max-w-96 text-balance'>{show.movie.title}</h1>
+          <div className='flex items-center gap-2 text-gray-300'>
+            <StarIcon className="w-5 h-5 text-primary fill-primary" />
+            {show.movie.vote_average.toFixed(1)} User Rating
           </div>
 
-          <p className='text-sm md:text-base text-gray-300 leading-relaxed max-w-2xl mt-2'>
-            {show.movie.overview}
+          <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>{show.movie.overview}</p>
+
+          <p>
+            {timeFormat(show.movie.runtime)} • {show.movie.genres.map(genre => genre.name).join(", ")} • {show.movie.release_date.split("-")[0]}
           </p>
 
-          <p className='text-sm md:text-base text-gray-300 font-medium mt-2'>
-            {timeFormat(show.movie.runtime)} <span className='text-gray-500 mx-1.5'>•</span>{" "}
-            {show.movie.genres?.map(g => g.name).join(", ")} <span className='text-gray-500 mx-1.5'>•</span>{" "}
-            {new Date(show.movie.release_date).getFullYear()}
-          </p>
-
-          <div className='flex flex-wrap items-center gap-4 mt-6'>
-            <button className='flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-sm font-semibold transition duration-300 text-white cursor-pointer'>
-              <PlayCircleIcon className='w-5 h-5' />
+          <div className='flex items-center flex-wrap gap-4 mt-4'>
+            <button className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 hover:bg-gray-900 transition rounded-md font-medium cursor-pointer active:scale-95'>
+              <PlayCircleIcon className="w-5 h-5" />
               Watch Trailer
             </button>
-
-            <a href="#dateSelect" className='px-8 py-3 bg-primary hover:bg-primary-dull text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-primary/20 transition duration-300 text-center cursor-pointer'>
-              Buy Tickets
-            </a>
-
-            <button 
-              onClick={handleFavoriteClick}
-              className={`p-3 border rounded-full transition duration-300 flex items-center justify-center cursor-pointer aspect-square ${
-                isFavorited 
-                  ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(248,69,101,0.3)]' 
-                  : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-              }`}
-            >
-              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-primary text-primary' : ''}`} />
+            <a href="#dateSelect" className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer active:scale-95'>Buy Tickets</a>
+            <button onClick={handleFavorite} className='bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95'>
+              <Heart className={`w-5 h-5 ${favoriteMovies.find(movie => movie._id === id) ? 'fill-primary text-primary' : ""} `} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Cast Section */}
-      <p className='text-xl md:text-2xl font-semibold text-white mt-20'>Your Favorite Cast</p>
+      <p className='text-lg font-medium mt-20'>Your Favorite Cast</p>
       <div className='overflow-x-auto no-scrollbar mt-8 pb-4'>
-        <div className='flex items-start gap-6 md:gap-8 w-max py-2 px-1'>
+        <div className='flex items-center gap-4 w-max px-4'>
           {show.movie.casts.slice(0, 12).map((cast, index) => (
-            <div key={index} className='flex flex-col items-center text-center w-20 md:w-24 group cursor-pointer'>
-              <div className='relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border border-white/10 shadow-md group-hover:scale-105 transition-transform duration-300'>
-                <img
-                  src={cast.profile_path}
-                  alt={cast.name}
-                  className='w-full h-full object-cover'
-                />
-              </div>
-              <p className='font-medium text-xs text-gray-300 group-hover:text-white mt-3 leading-snug line-clamp-2 max-w-[90px] transition-colors duration-300'>
-                {cast.name}
-              </p>
+            <div key={index} className='flex flex-col items-center text-center'>
+              <img src={image_base_url + cast.profile_path} alt="" className='rounded-full h-20 md:h-20 aspect-square object-cover' />
+              <p className='font-medium text-xs mt-3'>{cast.name}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Date/Showtime selection */}
-      <DateSelect dateTime={show.datetime} id={id} />
+      <DateSelect dateTime={show.dateTime} id={id} />
 
-      {/* Similar Movies Section */}
-      <p className='text-xl md:text-2xl font-semibold text-white mt-20 mb-8'>You May Also Like</p>
+      <p className='text-lg font-medium mt-20 mb-8'>You May Also Like</p>
       <div className='flex flex-wrap max-sm:justify-center gap-8'>
-        {similarMovies.map((movie) => (
-          <MovieCard key={movie._id} movie={movie} />
+        {shows.slice(0, 4).map((movie, index) => (
+          <MovieCard key={index} movie={movie} />
         ))}
       </div>
-
       <div className='flex justify-center mt-20'>
-        <button
-          onClick={() => { navigate('/movies'); scrollTo(0, 0) }}
-          className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer'
-        >
-          Show more
-        </button>
+        <button onClick={() => { navigate('/movies'); scrollTo(0, 0) }} className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer'>Show more</button>
       </div>
+
     </div>
   ) : <Loading />
 }
 
-export default MovieDetails;
+export default MovieDetails

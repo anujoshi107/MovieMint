@@ -1,80 +1,123 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { dummyShowsData } from '../assets/assets';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-const AppContext = createContext();
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
-export const AppContextProvider = ({ children }) => {
-  const [shows] = useState(dummyShowsData);
-  
-  // Lazy state initialization for local storage persistence
-  const [favoriteMovies, setFavoriteMovies] = useState(() => {
+export const AppContext = createContext();
+
+export const AppProvider = ({ children }) => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [shows, setShows] = useState([]);
+  const [favoriteMovies, setFavoriteMovies] = useState([]);
+
+  const image_base_url = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
+
+  const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const fetchIsAdmin = async () => {
     try {
-      const saved = localStorage.getItem('moviemint_favorites');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+      const token = await getToken();
 
-  const [bookings, setBookings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('moviemint_bookings');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+      const { data } = await axios.get("/api/admin/is-admin", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  // Sync favorites with localStorage
-  useEffect(() => {
-    localStorage.setItem('moviemint_favorites', JSON.stringify(favoriteMovies));
-  }, [favoriteMovies]);
+      setIsAdmin(Boolean(data.isAdmin));
 
-  // Sync bookings with localStorage
-  useEffect(() => {
-    localStorage.setItem('moviemint_bookings', JSON.stringify(bookings));
-  }, [bookings]);
-
-  const toggleFavorite = (movie) => {
-    setFavoriteMovies((prev) => {
-      const exists = prev.some((m) => m._id === movie._id);
-      if (exists) {
-        return prev.filter((m) => m._id !== movie._id);
-      } else {
-        return [...prev, movie];
+      if (!data.isAdmin && location.pathname.startsWith("/admin")) {
+        navigate("/");
+        toast.error("You are not authorized to access admin dashboard");
       }
-    });
+    } catch (error) {
+      setIsAdmin(false);
+
+      if (location.pathname.startsWith("/admin")) {
+        navigate("/");
+        toast.error(
+          error.response?.data?.message ||
+          "You are not authorized to access admin dashboard"
+        );
+      }
+
+      console.error(error);
+    }
   };
 
-  const addBooking = (newBooking) => {
-    setBookings((prev) => {
-      // Avoid duplicate booking entries if session ID is matching
-      const isDuplicate = prev.some((b) => b.sessionId === newBooking.sessionId);
-      if (isDuplicate) return prev;
-      return [newBooking, ...prev];
-    });
+  const fetchShows = async () => {
+    try {
+      const { data } = await axios.get("/api/show/all");
+
+      if (data.success) {
+        setShows(Array.isArray(data.shows) ? data.shows : []);
+      } else {
+        setShows([]);
+      }
+    } catch (error) {
+      setShows([]);
+      console.error(error);
+    }
   };
 
-  return (
-    <AppContext.Provider
-      value={{
-        shows,
-        favoriteMovies,
-        bookings,
-        toggleFavorite,
-        addBooking,
-        image_base_url: '', // Left empty since the mock data includes full tmdb/unsplash URLs
-      }}
-    >
-      {children}
-    </AppContext.Provider>
-  );
+  const fetchFavoriteMovies = async () => {
+    try {
+      const token = await getToken();
+
+      const { data } = await axios.get("/api/user/favorites", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (data.success) {
+        setFavoriteMovies(Array.isArray(data.movies) ? data.movies : []);
+      } else {
+        setFavoriteMovies([]);
+      }
+    } catch (error) {
+      setFavoriteMovies([]);
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchShows();
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchIsAdmin();
+      fetchFavoriteMovies();
+    }
+
+    if (isLoaded && !user) {
+      setIsAdmin(false);
+      setFavoriteMovies([]);
+    }
+  }, [isLoaded, user]);
+
+  const value = {
+    axios,
+    fetchIsAdmin,
+    user,
+    getToken,
+    navigate,
+    isAdmin,
+    shows,
+    favoriteMovies,
+    fetchFavoriteMovies,
+    fetchShows,
+    image_base_url,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppContextProvider');
-  }
-  return context;
-};
+export const useAppContext = () => useContext(AppContext);

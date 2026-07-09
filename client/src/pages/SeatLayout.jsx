@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { dummyDateTimeData, dummyDashboardData, dummyShowsData } from '../assets/assets'
-import BlurCircle from './BlurCircle'
+import BlurCircle from '../components/BlurCircle'
 import { Clock } from 'lucide-react'
 
 function SeatLayout() {
@@ -18,9 +18,9 @@ function SeatLayout() {
     setShow(
       movie
         ? {
-            movie,
-            datetime: dummyDateTimeData,
-          }
+          movie,
+          datetime: dummyDateTimeData,
+        }
         : null
     )
     // reset when route changes
@@ -87,13 +87,12 @@ function SeatLayout() {
             type="button"
             onClick={() => handleSeatClick(seatId)}
             disabled={isOccupied}
-            className={`w-9 h-9 flex items-center justify-center rounded-md border text-[11px] font-semibold transition-all duration-300 cursor-pointer ${
-              isOccupied
+            className={`w-9 h-9 flex items-center justify-center rounded-md border text-[11px] font-semibold transition-all duration-300 cursor-pointer ${isOccupied
                 ? 'border-white/5 bg-white/5 text-white/10 cursor-not-allowed'
                 : isSelected
                   ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(248,69,101,0.4)] scale-105'
                   : 'border-primary/40 text-gray-300 bg-transparent hover:border-primary hover:text-white'
-            }`}
+              }`}
           >
             {seatId}
           </button>
@@ -119,7 +118,7 @@ function SeatLayout() {
     const loadingToast = toast.loading('Redirecting to Stripe Checkout...')
 
     try {
-      const response = await fetch('http://localhost:5000/api/create-checkout-session', {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +142,7 @@ function SeatLayout() {
 
       toast.dismiss(loadingToast)
       toast.success('Ready for Checkout!')
-      
+
       // Redirect directly to Stripe Hosted Checkout
       window.location.href = data.url
     } catch (err) {
@@ -163,11 +162,11 @@ function SeatLayout() {
 
   return (
     <div className="px-6 md:px-16 lg:px-24 xl:px-44 pt-32 pb-20 min-h-screen overflow-hidden">
-      <BlurCircle top='-80px' left='-80px'/>
-      <BlurCircle bottom='-80px' right='-80px'/>
+      <BlurCircle top='-80px' left='-80px' />
+      <BlurCircle bottom='-80px' right='-80px' />
 
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 md:gap-12 items-start justify-center">
-        
+
         {/* Left timings card */}
         <div className="w-full md:w-[260px] min-w-[260px] bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl">
           <p className="text-lg font-semibold text-white mb-4">Available Timings</p>
@@ -184,11 +183,10 @@ function SeatLayout() {
                       setSelectedSlot(slot)
                       setSelectedSeats([]) // reset selected seats for new slot
                     }}
-                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl border text-left transition-all duration-300 cursor-pointer ${
-                      selected
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl border text-left transition-all duration-300 cursor-pointer ${selected
                         ? 'bg-primary/20 text-white border-primary shadow-[0_0_15px_rgba(248,69,101,0.2)] ring-1 ring-primary'
                         : 'bg-transparent text-gray-300 border-white/10 hover:bg-white/5 hover:border-white/20'
-                    }`}
+                      }`}
                   >
                     <Clock className={`w-4 h-4 ${selected ? 'text-primary' : 'text-gray-400'}`} />
                     <span className="text-sm font-semibold tracking-wide">{formatTime(slot.time)}</span>
@@ -201,7 +199,7 @@ function SeatLayout() {
 
         {/* Seat map area */}
         <div className="flex-1 w-full flex flex-col items-center">
-          
+
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Select your seat</h2>
 
           {/* Screen curve */}
