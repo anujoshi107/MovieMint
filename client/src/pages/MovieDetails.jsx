@@ -48,7 +48,7 @@ const MovieDetails = () => {
     getShow()
   }, [id])
 
-  return show ? (
+  return (show && show.movie) ? (
     <div className='px-6 md:px-16 lg:px-40 pt-30 md:pt-50'>
       <div className='flex flex-col md:flex-row gap-8 max-w-6xl mx-auto'>
 
@@ -60,13 +60,13 @@ const MovieDetails = () => {
           <h1 className='text-4xl font-semibold max-w-96 text-balance'>{show.movie.title}</h1>
           <div className='flex items-center gap-2 text-gray-300'>
             <StarIcon className="w-5 h-5 text-primary fill-primary" />
-            {show.movie.vote_average.toFixed(1)} User Rating
+            {show.movie.vote_average ? show.movie.vote_average.toFixed(1) : 'N/A'} User Rating
           </div>
 
           <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>{show.movie.overview}</p>
 
           <p>
-            {timeFormat(show.movie.runtime)} • {show.movie.genres.map(genre => genre.name).join(", ")} • {show.movie.release_date.split("-")[0]}
+            {show.movie.runtime ? timeFormat(show.movie.runtime) : ''} • {show.movie.genres?.map(genre => genre.name).join(", ")} • {show.movie.release_date?.split("-")[0]}
           </p>
 
           <div className='flex items-center flex-wrap gap-4 mt-4'>
@@ -76,7 +76,7 @@ const MovieDetails = () => {
             </button>
             <a href="#dateSelect" className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer active:scale-95'>Buy Tickets</a>
             <button onClick={handleFavorite} className='bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95'>
-              <Heart className={`w-5 h-5 ${favoriteMovies.find(movie => movie._id === id) ? 'fill-primary text-primary' : ""} `} />
+              <Heart className={`w-5 h-5 ${favoriteMovies?.find(movie => movie._id === id) ? 'fill-primary text-primary' : ""} `} />
             </button>
           </div>
         </div>
@@ -85,7 +85,7 @@ const MovieDetails = () => {
       <p className='text-lg font-medium mt-20'>Your Favorite Cast</p>
       <div className='overflow-x-auto no-scrollbar mt-8 pb-4'>
         <div className='flex items-center gap-4 w-max px-4'>
-          {show.movie.casts.slice(0, 12).map((cast, index) => (
+          {show.movie.casts?.slice(0, 12).map((cast, index) => (
             <div key={index} className='flex flex-col items-center text-center'>
               <img src={image_base_url + cast.profile_path} alt="" className='rounded-full h-20 md:h-20 aspect-square object-cover' />
               <p className='font-medium text-xs mt-3'>{cast.name}</p>
@@ -107,7 +107,17 @@ const MovieDetails = () => {
       </div>
 
     </div>
-  ) : <Loading />
+  ) : (
+    <div className="min-h-screen flex flex-col items-center justify-center pt-32">
+      {!show ? <Loading /> : (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Movie Not Found</h2>
+          <p className="text-gray-400 mb-8">The movie you're looking for doesn't exist or has no upcoming shows.</p>
+          <button onClick={() => navigate('/movies')} className="px-6 py-2 bg-primary rounded-full font-medium">Browse Movies</button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default MovieDetails

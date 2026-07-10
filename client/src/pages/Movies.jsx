@@ -16,7 +16,8 @@ const Movies = () => {
       <BlurCircle top="150px" left="0px" />
       <BlurCircle bottom="50px" right="50px" />
 
-      <h1 className='text-lg font-medium my-4'>Now Showing</h1>
+      <h1 className='text-xs font-semibold tracking-[0.2em] text-primary uppercase'>Now Showing</h1>
+      <h2 className='text-2xl font-bold tracking-tight mb-8'>In Theatres</h2>
 
       <div className='flex flex-wrap max-sm:justify-center gap-8'>
         {movieList.map((movie) => (

@@ -11,7 +11,10 @@ const TrailersSection = () => {
 
   return (
     <div className='px-6 md:px-16 lg:px-24 xl:px-44 py-20 overflow-hidden'>
-      <p className='text-gray-300 font-medium text-lg max-w-[960px] mx-auto'>Trailers</p>
+      <div className='flex flex-col gap-1 max-w-[960px] mx-auto mb-6'>
+        <p className='text-xs font-semibold tracking-[0.2em] text-primary uppercase'>Watch Now</p>
+        <h2 className='text-2xl font-bold tracking-tight'>Featured Trailers</h2>
+      </div>
 
       <div className='relative mt-6'>
         <BlurCircle top='-100px' right='-100px' />

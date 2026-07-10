@@ -1,61 +1,58 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { dummyDateTimeData, dummyDashboardData, dummyShowsData } from '../assets/assets'
 import BlurCircle from '../components/BlurCircle'
 import { Clock } from 'lucide-react'
+import { useAppContext } from '../context/AppContext'
+import Loading from '../components/Loading'
 
 function SeatLayout() {
   const { id, date } = useParams()
+  const navigate = useNavigate()
+  const { axios, getToken, user } = useAppContext()
 
   const [show, setShow] = useState(null)
-  const [selectedSlot, setSelectedSlot] = useState(null) // timing object from dummyDateTimeData[date]
+  const [loading, setLoading] = useState(true)
+  const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedSeats, setSelectedSeats] = useState([])
 
   useEffect(() => {
-    // `:id` sometimes comes as `_id` (string) and sometimes as numeric `id`.
-    const movie = dummyShowsData.find((m) => m._id == id || m.id == id)
-    setShow(
-      movie
-        ? {
-          movie,
-          datetime: dummyDateTimeData,
+    const fetchShowData = async () => {
+      setLoading(true)
+      try {
+        const { data } = await axios.get(`/api/show/${id}`)
+        if (data.success) {
+          setShow(data)
+        } else {
+          toast.error(data.message || 'Failed to fetch show data')
         }
-        : null
-    )
-    // reset when route changes
+      } catch (err) {
+        console.error(err)
+        toast.error('Error fetching seat layout')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchShowData()
     setSelectedSlot(null)
     setSelectedSeats([])
-  }, [id, date])
+  }, [id, date, axios])
 
   const timings = useMemo(() => {
-    if (!show?.datetime || !date) return []
-    return show.datetime[date] || []
+    if (!show?.dateTime || !date) return []
+    return show.dateTime[date] || []
   }, [show, date])
 
-  // Auto-select the first timing slot when timings load (UX improvement matching screenshots)
+  // Auto-select the first timing slot when timings load
   useEffect(() => {
     if (timings.length > 0 && !selectedSlot) {
       setSelectedSlot(timings[0])
     }
   }, [timings, selectedSlot])
 
-  const activeShow = useMemo(() => {
-    if (!show?.movie) return null
-
-    const movieId = show.movie._id
-    const slotDateKey = selectedSlot?.time ? new Date(selectedSlot.time).toISOString().slice(0, 10) : date
-
-    // Prefer an activeShow that matches both movie + date, but fall back to any activeShow for the movie.
-    return (
-      dummyDashboardData.activeShows.find((s) => s.movie?._id == movieId && s.showDateTime?.slice(0, 10) == slotDateKey) ||
-      dummyDashboardData.activeShows.find((s) => s.movie?._id == movieId) ||
-      null
-    )
-  }, [show, selectedSlot, date])
-
-  const occupiedSeats = activeShow?.occupiedSeats || {}
-  const showPrice = activeShow?.showPrice || 0
+  const occupiedSeats = selectedSlot?.occupiedSeats || {}
+  const showPrice = selectedSlot?.showPrice || 0
 
   const formatTime = (isoString) => {
     try {
@@ -101,7 +98,6 @@ function SeatLayout() {
     </div>
   )
 
-  /** Front: A–B full width centered. Middle/back: left block + aisle + right block. */
   const renderSplitBlock = (leftRows, rightRows) => (
     <div className="mt-4 flex justify-center items-start gap-8 md:gap-12 lg:gap-16 w-full">
       <div className="flex flex-col gap-2.5">{leftRows.map((r) => renderSeatRow(r))}</div>
@@ -109,35 +105,29 @@ function SeatLayout() {
     </div>
   )
 
-  const totalAmount = selectedSeats.length * showPrice
-
   const onBookNow = async () => {
+    if (!user) return toast.error('Please login to book tickets')
     if (!selectedSlot) return toast.error('Please select a timing')
     if (selectedSeats.length === 0) return toast.error('Please select at least 1 seat')
 
-    const loadingToast = toast.loading('Redirecting to Stripe Checkout...')
+    const loadingToast = toast.loading('Initiating Booking...')
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          movieTitle: show.movie.title,
+      const token = await getToken()
+      
+      const { data } = await axios.post(
+        '/api/booking/create',
+        {
+          showId: selectedSlot.showId,
           selectedSeats: selectedSeats,
-          showPrice: showPrice,
-          totalAmount: totalAmount,
-          date: date,
-          time: selectedSlot.time,
-          movieId: id,
-        }),
-      })
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate payment')
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to initiate payment')
       }
 
       toast.dismiss(loadingToast)
@@ -152,10 +142,14 @@ function SeatLayout() {
     }
   }
 
+  if (loading) return <Loading />
+
   if (!show || !show.movie) {
     return (
-      <div className="pt-32 px-6 md:px-16 lg:px-24 xl:px-44 text-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center pt-32 text-center">
+        <h2 className="text-2xl font-bold mb-4">No Layout Available</h2>
+        <p className="text-gray-400 mb-8">Could not load the seat layout for this show.</p>
+        <button onClick={() => navigate('/movies')} className="px-6 py-2 bg-primary rounded-full font-medium">Browse Movies</button>
       </div>
     )
   }

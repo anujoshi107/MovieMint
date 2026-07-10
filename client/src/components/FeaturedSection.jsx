@@ -23,14 +23,17 @@ const FeaturedSection = () => {
       <div className='relative flex items-center justify-between pt-20 pb-10'>
         <BlurCircle top='0' right='-80px' />
 
-        <p className='text-gray-300 font-medium text-lg'>Now Showing</p>
+        <div className='flex flex-col gap-1'>
+          <p className='text-xs font-semibold tracking-[0.2em] text-primary uppercase'>Now Showing</p>
+          <h2 className='text-2xl font-bold tracking-tight'>In Theatres</h2>
+        </div>
 
         <button
           onClick={() => navigate('/movies')}
-          className='group flex items-center gap-2 text-sm text-gray-300 cursor-pointer'
+          className='group flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer'
         >
           View All
-          <ArrowRight className='group-hover:translate-x-0.5 transition w-4.5 h-4.5' />
+          <ArrowRight className='group-hover:translate-x-1 transition-transform w-4 h-4' />
         </button>
       </div>
 
@@ -46,9 +49,10 @@ const FeaturedSection = () => {
             navigate('/movies')
             scrollTo(0, 0)
           }}
-          className='px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer'
+          className='group flex items-center gap-2 px-10 py-3 text-sm bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all rounded-full font-medium tracking-wide cursor-pointer'
         >
-          Show more
+          Browse All Movies
+          <ArrowRight className='group-hover:translate-x-0.5 transition-transform w-4 h-4' />
         </button>
       </div>
     </div>

@@ -56,7 +56,8 @@ export const AppProvider = ({ children }) => {
       const { data } = await axios.get("/api/show/all");
 
       if (data.success) {
-        setShows(Array.isArray(data.shows) ? data.shows : []);
+        const validShows = Array.isArray(data.shows) ? data.shows.filter(movie => movie !== null && movie !== undefined) : [];
+        setShows(validShows);
       } else {
         setShows([]);
       }
