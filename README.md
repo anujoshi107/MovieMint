@@ -2,15 +2,38 @@
 
 MovieMint is a modern, full-stack web application built with the MERN stack. It offers a comprehensive platform for managing and exploring movies, featuring secure user authentication, seamless payments, and a responsive, beautiful UI.
 
-## ✨ Features
+## ✨ Key Features
 
-- **User Authentication:** Secure login and registration powered by [Clerk](https://clerk.com/).
-- **Modern UI:** Built with React 19, Tailwind CSS, and Lucide React icons for a stunning user experience.
-- **Media Management:** Upload and manage movie posters and videos using [Cloudinary](https://cloudinary.com/).
-- **Payments:** Integrated with [Stripe](https://stripe.com/) for subscriptions or pay-per-view access.
-- **Background Jobs:** Handled reliably via [Inngest](https://www.inngest.com/).
-- **Admin Dashboard:** A dedicated dashboard for administrators to manage movies, users, and releases.
-- **Responsive Design:** Fully responsive layout that works flawlessly on desktop, tablet, and mobile.
+### 🎬 For Users
+- **Browse & Discover:** Explore a vast library of movies, view detailed information, and discover upcoming releases.
+- **Interactive Seat Selection:** Choose your preferred seats using a dynamic and visual theater seat layout.
+- **Secure Ticket Booking:** Seamlessly book movie tickets with integrated [Stripe](https://stripe.com/) payments.
+- **Personalized Experience:** Add movies to your favorites and manage all your past and upcoming bookings in one place.
+- **Authentication:** Safe and secure login/registration powered by [Clerk](https://clerk.com/).
+
+### 🛡️ For Administrators
+- **Comprehensive Dashboard:** A dedicated, secure admin panel to oversee platform operations.
+- **Movie & Show Management:** Easily add new movies, schedule showtimes, and manage theater details.
+- **Media Uploads:** Directly upload and manage movie posters and promotional videos via [Cloudinary](https://cloudinary.com/).
+
+## 📁 Project Structure
+
+This project follows a standard MERN stack structure, cleanly separating the frontend client from the backend server.
+
+### `/client` (Frontend)
+Built with React 19, Vite, and Tailwind CSS.
+- `src/pages/`: Main application views including `Home`, `MovieDetails`, `SeatLayout`, `MyBookings`, and protected `admin/` routes.
+- `src/components/`: Reusable UI components.
+- `src/context/`: React context for global state management.
+- `src/lib/`: Utility functions and helper classes.
+
+### `/server` (Backend)
+Built with Node.js, Express, and MongoDB.
+- `models/`: Mongoose schemas defining the database structure (`User`, `Movie`, `Show`, `Booking`).
+- `controllers/`: Business logic handling API requests for users, bookings, shows, and admin tasks.
+- `routes/`: Express API route definitions mapping to specific controllers.
+- `inngest/`: Background job configurations and handlers.
+- `configs/` & `middleware/`: Database configurations and custom request middleware.
 
 ## 📸 Screenshots
 
