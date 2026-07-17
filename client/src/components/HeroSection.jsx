@@ -16,8 +16,8 @@ const HeroSection = () => {
         >
             {/* Dark red gradient overlay to match theme */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
-            {/* Subtle red tint to push toward theme color */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" /> 
+            {/* Subtle red tint to push toward theme color
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(180,20,40,0.18) 0%, transparent 70%)' }} />
 
             {/* Left-aligned content — exact layout from reference */}

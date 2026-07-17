@@ -47,7 +47,6 @@ const FeaturedSection = () => {
         <button
           onClick={() => {
             navigate('/movies')
-            scrollTo(0, 0)
           }}
           className='group flex items-center gap-2 px-10 py-3 text-sm bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all rounded-full font-medium tracking-wide cursor-pointer'
         >

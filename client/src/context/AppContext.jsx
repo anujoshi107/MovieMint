@@ -1,124 +1,234 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import axios from "axios";
 import { useAuth, useUser } from "@clerk/clerk-react";
-import { useLocation, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
-export const AppContext = createContext();
+export const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(true);
+
   const [shows, setShows] = useState([]);
   const [favoriteMovies, setFavoriteMovies] = useState([]);
 
-  const image_base_url = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
+  const image_base_url =
+    import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
 
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const location = useLocation();
+
   const navigate = useNavigate();
 
-  const fetchIsAdmin = async () => {
+  const userId = user?.id || null;
+
+  /*
+   * Store the latest getToken function in a ref.
+   * This keeps the API functions stable and prevents effects
+   * from rerunning only because getToken received a new reference.
+   */
+  const getTokenRef = useRef(getToken);
+
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+
+  // Check whether the signed-in user is an admin
+  const fetchIsAdmin = useCallback(async () => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
 
-      const { data } = await axios.get("/api/admin/is-admin", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setIsAdmin(Boolean(data.isAdmin));
-
-      if (!data.isAdmin && location.pathname.startsWith("/admin")) {
-        navigate("/");
-        toast.error("You are not authorized to access admin dashboard");
+      if (!token) {
+        setIsAdmin(false);
+        return false;
       }
+
+      const { data } = await axios.get(
+        "/api/admin/is-admin",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const adminStatus = Boolean(
+        data.success && data.isAdmin
+      );
+
+      setIsAdmin(adminStatus);
+
+      return adminStatus;
     } catch (error) {
       setIsAdmin(false);
 
-      if (location.pathname.startsWith("/admin")) {
-        navigate("/");
-        toast.error(
-          error.response?.data?.message ||
-          "You are not authorized to access admin dashboard"
-        );
-      }
+      console.error(
+        "Admin check failed:",
+        error.response?.data?.message ||
+          error.message ||
+          error
+      );
 
-      console.error(error);
+      return false;
     }
-  };
+  }, []);
 
-  const fetchShows = async () => {
+  // Fetch movies that have upcoming shows
+  const fetchShows = useCallback(async () => {
     try {
       const { data } = await axios.get("/api/show/all");
 
-      if (data.success) {
-        const validShows = Array.isArray(data.shows) ? data.shows.filter(movie => movie !== null && movie !== undefined) : [];
+      if (data.success && Array.isArray(data.shows)) {
+        const validShows = data.shows.filter(
+          (movie) => movie && movie._id
+        );
+
         setShows(validShows);
       } else {
         setShows([]);
       }
     } catch (error) {
       setShows([]);
-      console.error(error);
+
+      console.error(
+        "Failed to fetch shows:",
+        error.response?.data?.message ||
+          error.message ||
+          error
+      );
     }
-  };
+  }, []);
 
-  const fetchFavoriteMovies = async () => {
+  // Fetch the signed-in user's favorite movies
+  const fetchFavoriteMovies = useCallback(async () => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
 
-      const { data } = await axios.get("/api/user/favorites", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      if (!token) {
+        setFavoriteMovies([]);
+        return;
+      }
 
-      if (data.success) {
-        setFavoriteMovies(Array.isArray(data.movies) ? data.movies : []);
+      const { data } = await axios.get(
+        "/api/user/favorites",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (data.success && Array.isArray(data.movies)) {
+        const validMovies = data.movies.filter(
+          (movie) => movie && movie._id
+        );
+
+        setFavoriteMovies(validMovies);
       } else {
         setFavoriteMovies([]);
       }
     } catch (error) {
       setFavoriteMovies([]);
-      console.error(error);
-    }
-  };
 
-  useEffect(() => {
-    fetchShows();
+      console.error(
+        "Failed to fetch favorites:",
+        error.response?.data?.message ||
+          error.message ||
+          error
+      );
+    }
   }, []);
 
+  // Fetch public shows when AppProvider first mounts
   useEffect(() => {
-    if (isLoaded && user) {
-      fetchIsAdmin();
-      fetchFavoriteMovies();
+    fetchShows();
+  }, [fetchShows]);
+
+  // Initialize user information after Clerk finishes loading
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
     }
 
-    if (isLoaded && !user) {
+    // No user is signed in
+    if (!userId) {
       setIsAdmin(false);
+      setIsAdminLoading(false);
       setFavoriteMovies([]);
+      return;
     }
-  }, [isLoaded, user]);
+
+    const initializeUser = async () => {
+      setIsAdminLoading(true);
+
+      try {
+        await Promise.all([
+          fetchIsAdmin(),
+          fetchFavoriteMovies(),
+        ]);
+      } finally {
+        /*
+         * This was the important missing part.
+         * It removes the loading screen after the requests finish.
+         */
+        setIsAdminLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, [
+    isLoaded,
+    userId,
+    fetchIsAdmin,
+    fetchFavoriteMovies,
+  ]);
 
   const value = {
     axios,
-    fetchIsAdmin,
+
     user,
+    isLoaded,
     getToken,
     navigate,
+
     isAdmin,
+    isAdminLoading,
+    fetchIsAdmin,
+
     shows,
+    fetchShows,
+
     favoriteMovies,
     fetchFavoriteMovies,
-    fetchShows,
+
     image_base_url,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 };
 
-export const useAppContext = () => useContext(AppContext);
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+
+  if (!context) {
+    throw new Error(
+      "useAppContext must be used inside AppProvider"
+    );
+  }
+
+  return context;
+};
