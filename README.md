@@ -14,7 +14,6 @@ MovieMint is a modern, full-stack web application built with the MERN stack. It 
 ### 🛡️ For Administrators
 - **Comprehensive Dashboard:** A dedicated, secure admin panel to oversee platform operations.
 - **Movie & Show Management:** Easily add new movies, schedule showtimes, and manage theater details.
-- **Media Uploads:** Directly upload and manage movie posters and promotional videos via [Cloudinary](https://cloudinary.com/).
 
 ## 📁 Project Structure
 
@@ -65,7 +64,6 @@ Built with Node.js, Express, and MongoDB.
 - **Database:** MongoDB (Mongoose)
 - **Authentication:** @clerk/express, Svix (Webhooks)
 - **Payments:** Stripe
-- **Media Storage:** Cloudinary
 - **Emails:** Nodemailer
 - **Background Jobs:** Inngest
 
@@ -76,7 +74,7 @@ Follow these instructions to set up the project locally.
 ### Prerequisites
 - Node.js (v18 or higher)
 - MongoDB instance (local or MongoDB Atlas)
-- Accounts for Clerk, Stripe, Cloudinary, and Inngest
+- Accounts for Clerk, Stripe, and Inngest
 
 ### 1. Clone the repository
 ```bash
@@ -107,9 +105,6 @@ PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 CLERK_SECRET_KEY=your_clerk_secret_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 **`client/.env` example:**
